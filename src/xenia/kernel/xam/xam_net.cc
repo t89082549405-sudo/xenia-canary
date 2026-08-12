@@ -969,17 +969,6 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
 
     std::memcpy(xn_addr->abEnet, mac.raw(), MacAddress::MacAddressSize);
 
-    if (xid_ptr != nullptr) {
-      const uint64_t session_id =
-          kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
-
-      XNKID* sessionId_ptr = kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
-
-      xe::be<uint64_t> session_id_be = session_id;
-
-      memcpy(sessionId_ptr, &session_id_be, sizeof(uint64_t));
-    }
-
     return X_STATUS_SUCCESS;
   }
 
