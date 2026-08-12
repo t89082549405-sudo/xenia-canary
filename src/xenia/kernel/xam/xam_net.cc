@@ -960,7 +960,31 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
     xn_addr->wPortOnline = kernel_state()->GetXboxLiveAPI()->GetPlayerPort();
     xn_addr->abOnline.platform_type = PLATFORM_TYPE::Xbox360;
   }
+  if (cvars::network_mode == NETWORK_MODE::LAN) {
+    const uint32_t ip = in_addr;
 
+    uint64_t virtual_mac =
+        0x020000000000ULL |
+        static_cast<uint64_t>(ip);
+
+    MacAddress mac(virtual_mac);
+
+    std::memcpy(xn_addr->abEnet, mac.raw(), MacAddress::MacAddressSize);
+
+    if (xid_ptr != nullptr) {
+      const uint64_t session_id =
+          kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
+
+      XNKID* sessionId_ptr =
+          kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
+
+      xe::be<uint64_t> session_id_be = session_id;
+
+      memcpy(sessionId_ptr, &session_id_be, sizeof(uint64_t));
+    }
+
+  return X_STATUS_SUCCESS;
+  }
   const uint64_t cached_session_id =
       kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
 
