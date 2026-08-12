@@ -983,7 +983,7 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
   }
 
   return X_STATUS_SUCCESS;
-  }
+}
   const uint64_t cached_session_id =
       kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
 
