@@ -856,7 +856,7 @@ dword_result_t NetDll_XNetTsAddrToInAddr_entry(dword_t caller,
 
   // Use XNKID to lookup security association?
 
-  *ina_ptr = tsaddr_ptr->inaOnline;
+  *ina_ptr = tsaddr_ptr->ina;
 
   IsValidXNKID(xnkid_ptr->as_uintBE64());
 
