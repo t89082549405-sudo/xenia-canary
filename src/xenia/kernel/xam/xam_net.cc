@@ -963,8 +963,7 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
   if (cvars::network_mode == NETWORK_MODE::LAN) {
     const uint32_t ip = in_addr;
 
-    const uint64_t virtual_mac =
-        0x020000000000ULL | static_cast<uint64_t>(ip);
+    const uint64_t virtual_mac = 0x020000000000ULL | static_cast<uint64_t>(ip);
 
     MacAddress mac(virtual_mac);
     std::memcpy(xn_addr->abEnet, mac.raw(), MacAddress::MacAddressSize);
