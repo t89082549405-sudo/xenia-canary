@@ -971,7 +971,7 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
 
     if (xid_ptr != nullptr) {
       const uint64_t session_id =
-           kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
+          kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
 
       XNKID* sessionId_ptr = kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
 
