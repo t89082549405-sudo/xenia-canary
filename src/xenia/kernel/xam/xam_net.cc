@@ -295,7 +295,7 @@ dword_result_t XNetLogonGetMachineID_entry(lpqword_t machine_id_ptr) {
   const MacAddress console_mac = GetConsoleMacAddress();
   *machine_id_ptr = GetLocalMachineId(console_mac);
   XELOGI("XNetLogonGetMachineID: console_mac={:016X} machine_id={:016X}",
-         console_mac.to_uint64(), *machine_id_ptr);
+         console_mac.to_uint64(), machine_id_ptr->get());
 
   // if (XLiveAPI::GetInitState() != XLiveAPI::InitState::Success) {
   //   *machine_id_ptr = 0;
@@ -1005,7 +1005,7 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
     XELOGI(
         "XNetInAddrToXnAddr: self/broadcast(0x{:08X}) -> ina={} abEnet="
         "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-        in_addr, ip_to_string(xn_addr->inaOnline), xn_addr->abEnet[0],
+        in_addr.value(), ip_to_string(xn_addr->inaOnline), xn_addr->abEnet[0],
         xn_addr->abEnet[1], xn_addr->abEnet[2], xn_addr->abEnet[3],
         xn_addr->abEnet[4], xn_addr->abEnet[5]);
     return X_ERROR_SUCCESS;
@@ -1098,20 +1098,21 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
         "XNetInAddrToXnAddr: peer(0x{:08X} -> {}) -> ina={} inaOnline={} "
         "wPortOnline={} abEnet={:02X}{:02X}{:02X}{:02X}{:02X}{:02X} "
         "XNKID={:016X}",
-        in_addr, ip_to_string(xn_addr->inaOnline), ip_to_string(xn_addr->ina),
-        ip_to_string(xn_addr->inaOnline), xn_addr->wPortOnline.get(),
-        xn_addr->abEnet[0], xn_addr->abEnet[1], xn_addr->abEnet[2],
-        xn_addr->abEnet[3], xn_addr->abEnet[4], xn_addr->abEnet[5],
-        sessionId_ptr->as_uintBE64());
+        in_addr.value(), ip_to_string(xn_addr->inaOnline),
+        ip_to_string(xn_addr->ina), ip_to_string(xn_addr->inaOnline),
+        xn_addr->wPortOnline.get(), xn_addr->abEnet[0], xn_addr->abEnet[1],
+        xn_addr->abEnet[2], xn_addr->abEnet[3], xn_addr->abEnet[4],
+        xn_addr->abEnet[5], sessionId_ptr->as_uintBE64());
   } else {
     XELOGI(
         "XNetInAddrToXnAddr: peer(0x{:08X} -> {}) -> ina={} inaOnline={} "
         "wPortOnline={} abEnet={:02X}{:02X}{:02X}{:02X}{:02X}{:02X} "
         "(no XNKID)",
-        in_addr, ip_to_string(xn_addr->inaOnline), ip_to_string(xn_addr->ina),
-        ip_to_string(xn_addr->inaOnline), xn_addr->wPortOnline.get(),
-        xn_addr->abEnet[0], xn_addr->abEnet[1], xn_addr->abEnet[2],
-        xn_addr->abEnet[3], xn_addr->abEnet[4], xn_addr->abEnet[5]);
+        in_addr.value(), ip_to_string(xn_addr->inaOnline),
+        ip_to_string(xn_addr->ina), ip_to_string(xn_addr->inaOnline),
+        xn_addr->wPortOnline.get(), xn_addr->abEnet[0], xn_addr->abEnet[1],
+        xn_addr->abEnet[2], xn_addr->abEnet[3], xn_addr->abEnet[4],
+        xn_addr->abEnet[5]);
   }
 
   return X_STATUS_SUCCESS;
