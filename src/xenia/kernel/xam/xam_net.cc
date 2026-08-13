@@ -7,7 +7,9 @@
  ******************************************************************************
  */
 
+#include <chrono>
 #include <random>
+#include <unordered_map>
 
 // clang-format off
 // We want to include platform.h first to define NOMINMAX to prevent window.h
@@ -821,8 +823,16 @@ dword_result_t NetDll_XNetUnregisterInAddr_entry(dword_t caller, dword_t addr) {
 }
 DECLARE_XAM_EXPORT1(NetDll_XNetUnregisterInAddr, kNetworking, kStub);
 
+static std::unordered_map<uint32_t, std::chrono::steady_clock::time_point>
+    xnet_connect_times_;
+
+static constexpr std::chrono::milliseconds
+    kXnetConnectStatusPendingWindow{1000};
+
 dword_result_t NetDll_XNetConnect_entry(dword_t caller, dword_t addr) {
   XELOGI("XNetConnect({:08X})", cvars::log_mask_ips ? 0 : addr.value());
+
+  xnet_connect_times_[addr.value()] = std::chrono::steady_clock::now();
 
   // 43430806, 43430821 and 5841124E fail to connect without sleep.
   xe::threading::Sleep(150ms);
@@ -832,10 +842,19 @@ dword_result_t NetDll_XNetConnect_entry(dword_t caller, dword_t addr) {
 DECLARE_XAM_EXPORT1(NetDll_XNetConnect, kNetworking, kStub);
 
 dword_result_t NetDll_XNetGetConnectStatus_entry(dword_t caller, dword_t addr) {
-  XELOGI("XNetGetConnectStatus({:08X})",
-         cvars::log_mask_ips ? 0 : addr.value());
+  auto it = xnet_connect_times_.find(addr.value());
+  uint32_t status = STATUS_CONNECTED;
+  if (it != xnet_connect_times_.end()) {
+    auto elapsed = std::chrono::steady_clock::now() - it->second;
+    if (elapsed < kXnetConnectStatusPendingWindow) {
+      status = XNET_CONNECT_STATUS_PENDING;
+    }
+  }
 
-  return STATUS_CONNECTED;
+  XELOGI("XNetGetConnectStatus({:08X}) = {:02X}",
+         cvars::log_mask_ips ? 0 : addr.value(), status);
+
+  return status;
 }
 DECLARE_XAM_EXPORT1(NetDll_XNetGetConnectStatus, kNetworking, kStub);
 
