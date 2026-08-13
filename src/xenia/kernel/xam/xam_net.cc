@@ -49,9 +49,23 @@ DECLARE_bool(logging);
 
 DECLARE_bool(log_mask_ips);
 
+DECLARE_bool(log_packet_data);
+
 DECLARE_int32(network_mode);
 
 DECLARE_bool(bind_interface);
+
+static void DumpPacketData(const uint8_t* buf, size_t len) {
+  if (!cvars::log_packet_data || !buf || len == 0) {
+    return;
+  }
+  size_t n = std::min<size_t>(len, 512);
+  std::string hex;
+  for (size_t i = 0; i < n; i++) {
+    hex += fmt::format("{:02X} ", buf[i]);
+  }
+  XELOGI("  payload({}): {}", len, hex);
+}
 
 enum XNET_QOS {
   LISTEN_ENABLE = 0x01,
@@ -278,7 +292,10 @@ dword_result_t NetDll_XNetCleanup_entry(dword_t caller) {
 DECLARE_XAM_EXPORT1(NetDll_XNetCleanup, kNetworking, kStub);
 
 dword_result_t XNetLogonGetMachineID_entry(lpqword_t machine_id_ptr) {
-  *machine_id_ptr = GetLocalMachineId(GetConsoleMacAddress());
+  const MacAddress console_mac = GetConsoleMacAddress();
+  *machine_id_ptr = GetLocalMachineId(console_mac);
+  XELOGI("XNetLogonGetMachineID: console_mac={:016X} machine_id={:016X}",
+         console_mac.to_uint64(), *machine_id_ptr);
 
   // if (XLiveAPI::GetInitState() != XLiveAPI::InitState::Success) {
   //   *machine_id_ptr = 0;
@@ -721,6 +738,15 @@ dword_result_t NetDll_XNetGetTitleXnAddr_entry(dword_t caller,
 
   XLiveAPI::IpGetConsoleXnAddr(XnAddr_ptr);
 
+  XELOGI(
+      "XNetGetTitleXnAddr: ina={} inaOnline={} wPortOnline={} "
+      "abEnet={:02X}{:02X}"
+      "{:02X}{:02X}{:02X}{:02X} status={:08X}",
+      ip_to_string(XnAddr_ptr->ina), ip_to_string(XnAddr_ptr->inaOnline),
+      XnAddr_ptr->wPortOnline.get(), XnAddr_ptr->abEnet[0],
+      XnAddr_ptr->abEnet[1], XnAddr_ptr->abEnet[2], XnAddr_ptr->abEnet[3],
+      XnAddr_ptr->abEnet[4], XnAddr_ptr->abEnet[5], status);
+
   // TODO(gibbed): A proper mac address.
   // RakNet's 360 version appears to depend on abEnet to create "random" 64-bit
   // numbers. A zero value will cause RakPeer::Startup to fail. This causes
@@ -770,6 +796,15 @@ dword_result_t NetDll_XNetXnAddrToMachineId_entry(dword_t caller,
   const uint64_t machine_id = GetMachineId(mac.to_uint64());
 
   *id_ptr = machine_id;
+
+  XELOGI(
+      "XNetXnAddrToMachineId: ina={} inaOnline={} wPortOnline={} abEnet="
+      "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X} mac={:016X} "
+      "machine_id={:016X}",
+      ip_to_string(addr_ptr->ina), ip_to_string(addr_ptr->inaOnline),
+      addr_ptr->wPortOnline.get(), addr_ptr->abEnet[0], addr_ptr->abEnet[1],
+      addr_ptr->abEnet[2], addr_ptr->abEnet[3], addr_ptr->abEnet[4],
+      addr_ptr->abEnet[5], mac.to_uint64(), machine_id);
 
   return X_ERROR_SUCCESS;
 }
@@ -860,8 +895,12 @@ dword_result_t NetDll_XNetTsAddrToInAddr_entry(dword_t caller,
 
   IsValidXNKID(xnkid_ptr->as_uintBE64());
 
-  XELOGI("Server IP: {}, Service ID: {:08X}", ip_to_string(*ina_ptr),
-         static_cast<uint32_t>(service_id));
+  XELOGI(
+      "XNetTsAddrToInAddr: tsaddr.ina={} tsaddr.inaOnline={} -> resolved={} "
+      "Service ID: {:08X}, XNKID={:016X}",
+      ip_to_string(tsaddr_ptr->ina), ip_to_string(tsaddr_ptr->inaOnline),
+      ip_to_string(*ina_ptr), static_cast<uint32_t>(service_id),
+      xnkid_ptr->as_uintBE64());
 
   return X_ERROR_SUCCESS;
 }
@@ -901,6 +940,8 @@ dword_result_t NetDll_XNetXnAddrToInAddr_entry(dword_t caller,
       in_addr->s_addr = xe::byte_swap(LOOPBACK);
     }
 
+    XELOGI("XNetXnAddrToInAddr -> LOOPBACK: {}", ip_to_string(*in_addr));
+
     return X_ERROR_SUCCESS;
   }
 
@@ -911,6 +952,14 @@ dword_result_t NetDll_XNetXnAddrToInAddr_entry(dword_t caller,
   if (cvars::network_mode == NETWORK_MODE::XBOXLIVE) {
     in_addr->s_addr = xn_addr->inaOnline.s_addr;
   }
+
+  XELOGI(
+      "XNetXnAddrToInAddr: ina={} inaOnline={} wPortOnline={} abEnet="
+      "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X} -> {}",
+      ip_to_string(xn_addr->ina), ip_to_string(xn_addr->inaOnline),
+      xn_addr->wPortOnline.get(), xn_addr->abEnet[0], xn_addr->abEnet[1],
+      xn_addr->abEnet[2], xn_addr->abEnet[3], xn_addr->abEnet[4],
+      xn_addr->abEnet[5], ip_to_string(*in_addr));
 
   return X_ERROR_SUCCESS;
 }
@@ -953,6 +1002,12 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
 
   if (in_addr == LOOPBACK || bound_interface || in_addr == BROADCAST) {
     XLiveAPI::IpGetConsoleXnAddr(xn_addr);
+    XELOGI(
+        "XNetInAddrToXnAddr: self/broadcast(0x{:08X}) -> ina={} abEnet="
+        "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+        in_addr, ip_to_string(xn_addr->inaOnline), xn_addr->abEnet[0],
+        xn_addr->abEnet[1], xn_addr->abEnet[2], xn_addr->abEnet[3],
+        xn_addr->abEnet[4], xn_addr->abEnet[5]);
     return X_ERROR_SUCCESS;
   } else {
     xn_addr->ina.s_addr = ntohl(in_addr);
@@ -1038,6 +1093,25 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
     memcpy(sessionId_ptr, &session_id, sizeof(uint64_t));
 
     IsValidXNKID(sessionId_ptr->as_uintBE64());
+
+    XELOGI(
+        "XNetInAddrToXnAddr: peer(0x{:08X} -> {}) -> ina={} inaOnline={} "
+        "wPortOnline={} abEnet={:02X}{:02X}{:02X}{:02X}{:02X}{:02X} "
+        "XNKID={:016X}",
+        in_addr, ip_to_string(xn_addr->inaOnline), ip_to_string(xn_addr->ina),
+        ip_to_string(xn_addr->inaOnline), xn_addr->wPortOnline.get(),
+        xn_addr->abEnet[0], xn_addr->abEnet[1], xn_addr->abEnet[2],
+        xn_addr->abEnet[3], xn_addr->abEnet[4], xn_addr->abEnet[5],
+        sessionId_ptr->as_uintBE64());
+  } else {
+    XELOGI(
+        "XNetInAddrToXnAddr: peer(0x{:08X} -> {}) -> ina={} inaOnline={} "
+        "wPortOnline={} abEnet={:02X}{:02X}{:02X}{:02X}{:02X}{:02X} "
+        "(no XNKID)",
+        in_addr, ip_to_string(xn_addr->inaOnline), ip_to_string(xn_addr->ina),
+        ip_to_string(xn_addr->inaOnline), xn_addr->wPortOnline.get(),
+        xn_addr->abEnet[0], xn_addr->abEnet[1], xn_addr->abEnet[2],
+        xn_addr->abEnet[3], xn_addr->abEnet[4], xn_addr->abEnet[5]);
   }
 
   return X_STATUS_SUCCESS;
@@ -2473,6 +2547,7 @@ dword_result_t NetDll_recvfrom_entry(dword_t caller, dword_t socket_handle,
     XELOGI("NetDll_recvfrom: Received {} bytes from: {}:{}({})", ret,
            ip_to_string(from_ptr->address_ip), from_ptr->address_port.get(),
            socket->GetProtocolUPnPString());
+    DumpPacketData(static_cast<const uint8_t*>(buf_ptr), ret);
   }
 
   return ret;
@@ -2520,6 +2595,7 @@ dword_result_t NetDll_sendto_entry(dword_t caller, dword_t socket_handle,
     XELOGI("NetDll_sendto: Send {} bytes to: {}:{}({})", ret,
            ip_to_string(to_ptr->address_ip), to_ptr->address_port.get(),
            socket->GetProtocolUPnPString());
+    DumpPacketData(static_cast<const uint8_t*>(buf_ptr), ret);
   }
 
   return ret;

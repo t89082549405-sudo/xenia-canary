@@ -2075,6 +2075,9 @@ void xeDrawUPnPAndPorts(xe::ui::ImGuiDrawer* imgui_drawer,
 
 X_RESULT xeXamShowSigninUI(uint32_t user_index, uint32_t users_needed,
                            uint32_t flags) {
+  XELOGI("xeXamShowSigninUI: user_index={} users_needed={} flags={:08X}",
+         user_index, users_needed, flags);
+
   // Mask values vary. Probably matching user types? Local/remote?
   // Games seem to sit and loop until we trigger sign in notification.
   if (users_needed != 1 && users_needed != 2 && users_needed != 4) {

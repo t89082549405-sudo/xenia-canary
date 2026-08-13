@@ -38,6 +38,9 @@ DEFINE_bool(logging, false, "Log Network Activity & Stats", "Live");
 DEFINE_bool(log_mask_ips, true, "Do not include P2P IPs inside the log",
             "Live");
 
+DEFINE_bool(log_packet_data, false,
+            "Dump UDP packet contents (hex) to the log.", "Live");
+
 DEFINE_int32(network_mode, 2,
              "Network mode types: 0 - Offline, 1 - Systemlink, 2 - Xbox Live.",
              "Live");
