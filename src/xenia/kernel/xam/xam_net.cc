@@ -1012,14 +1012,14 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
   }
 
   if (xid_ptr != nullptr) {
-    XNKID* sessionId_ptr = kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
-    xe::be<uint64_t> session_id = 0;
+    XNKID* sessionId_ptr =
+        kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
 
-    // FIXME
-    if (cached_session_id) {
+    xe::be<uint64_t> session_id =
+        XLiveAPI::sessionIdCache[xn_addr->inaOnline.s_addr];
+
+    if (!session_id && cached_session_id) {
       session_id = cached_session_id;
-    } else {
-      session_id = XLiveAPI::sessionIdCache[xn_addr->inaOnline.s_addr];
     }
 
     memcpy(sessionId_ptr, &session_id, sizeof(uint64_t));
