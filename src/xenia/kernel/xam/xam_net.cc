@@ -961,24 +961,26 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
     xn_addr->abOnline.platform_type = PLATFORM_TYPE::Xbox360;
   }
   if (cvars::network_mode == NETWORK_MODE::LAN) {
-    const uint32_t ip = in_addr;
+    const uint32_t peer_ip = xn_addr->inaOnline.s_addr;
 
-    uint64_t virtual_mac = 0x020000000000ULL | static_cast<uint64_t>(ip);
+    const uint64_t peer_mac =
+        0x020000000000ULL | static_cast<uint64_t>(in_addr);
 
-    MacAddress mac(virtual_mac);
+    const uint64_t peer_session_id =
+        kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
 
+    const uint16_t peer_port =
+        kernel_state()->GetXboxLiveAPI()->GetPlayerPort();
+
+    xn_addr->ina.s_addr = peer_ip;
+    xn_addr->inaOnline.s_addr = peer_ip;
+    xn_addr->wPortOnline = peer_port;
+
+    MacAddress mac(peer_mac);
     std::memcpy(xn_addr->abEnet, mac.raw(), MacAddress::MacAddressSize);
 
-    if (xid_ptr != nullptr) {
-      const uint64_t session_id =
-          kernel_state()->GetXboxLiveAPI()->GetSystemlinkID();
-
-      XNKID* sessionId_ptr = kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
-
-      xe::be<uint64_t> session_id_be = session_id;
-
-      memcpy(sessionId_ptr, &session_id_be, sizeof(uint64_t));
-    }
+    XLiveAPI::macAddressCache[peer_ip] = peer_mac;
+    XLiveAPI::sessionIdCache[peer_ip] = peer_session_id;
   }
 
   const uint64_t cached_session_id =
