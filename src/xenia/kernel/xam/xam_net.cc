@@ -1005,13 +1005,11 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
 
   const uint64_t remote_mac =
       XLiveAPI::macAddressCache[xn_addr->inaOnline.s_addr];
-  MacAddress mac = MacAddress(static_cast<uint64_t>(0));
 
   if (remote_mac) {
-    mac = MacAddress(XLiveAPI::macAddressCache[xn_addr->inaOnline.s_addr]);
+    MacAddress mac(remote_mac);
+    std::memcpy(xn_addr->abEnet, mac.raw(), MacAddress::MacAddressSize);
   }
-
-  std::memcpy(xn_addr->abEnet, mac.raw(), MacAddress::MacAddressSize);
 
   if (xid_ptr != nullptr) {
     XNKID* sessionId_ptr = kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
