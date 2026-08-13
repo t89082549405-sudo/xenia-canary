@@ -826,8 +826,8 @@ DECLARE_XAM_EXPORT1(NetDll_XNetUnregisterInAddr, kNetworking, kStub);
 static std::unordered_map<uint32_t, std::chrono::steady_clock::time_point>
     xnet_connect_times_;
 
-static constexpr std::chrono::milliseconds
-    kXnetConnectStatusPendingWindow{1000};
+static constexpr std::chrono::milliseconds kXnetConnectStatusPendingWindow{
+    1000};
 
 dword_result_t NetDll_XNetConnect_entry(dword_t caller, dword_t addr) {
   XELOGI("XNetConnect({:08X})", cvars::log_mask_ips ? 0 : addr.value());
