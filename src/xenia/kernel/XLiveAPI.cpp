@@ -137,8 +137,20 @@ void XLiveAPI::IpGetConsoleXnAddr(XNADDR* XnAddr_ptr) {
 
   XnAddr_ptr->abOnline.platform_type = PLATFORM_TYPE::Xbox360;
 
-  memcpy(XnAddr_ptr->abEnet, GetConsoleMacAddress().raw(),
-         MacAddress::MacAddressSize);
+  if (adapter_local_ip.sin_addr.s_addr != 0) {
+    // Announce a synthetic MAC derived from the local console IP so that it
+    // matches how peers resolve us via XNetInAddrToXnAddr (0x020000000000 |
+    // ip). On real hardware the announced and the peer-resolved MAC are the
+    // same; a mismatch here prevents games from finalizing a join.
+    uint8_t ip_bytes[4];
+    memcpy(ip_bytes, &adapter_local_ip.sin_addr.s_addr, sizeof(ip_bytes));
+    XnAddr_ptr->abEnet[0] = 0x02;
+    XnAddr_ptr->abEnet[1] = 0x00;
+    memcpy(XnAddr_ptr->abEnet + 2, ip_bytes, sizeof(ip_bytes));
+  } else {
+    memcpy(XnAddr_ptr->abEnet, GetConsoleMacAddress().raw(),
+           MacAddress::MacAddressSize);
+  }
 }
 
 void XLiveAPI::GetXnAddrFromSessionObject(SessionObjectJSON session,
