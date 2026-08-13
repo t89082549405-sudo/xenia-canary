@@ -948,6 +948,28 @@ std::unique_ptr<PlayerObjectJSON> XLiveAPI::FindPlayer(std::string ip) {
   std::unique_ptr<PlayerObjectJSON> player =
       std::make_unique<PlayerObjectJSON>();
 
+  if (cvars::network_mode == NETWORK_MODE::LAN) {
+    const sockaddr_in addr = ip_to_sockaddr(ip);
+    const uint32_t ip_addr = addr.sin_addr.s_addr;
+
+    auto session_it = sessionIdCache.find(ip_addr);
+    auto mac_it = macAddressCache.find(ip_addr);
+
+    if (session_it != sessionIdCache.end()) {
+      player->SessionID(session_it->second);
+    }
+
+    if (mac_it != macAddressCache.end()) {
+      player->MacAddress(mac_it->second);
+    }
+
+    player->HostAddress(ip);
+
+    if (session_it != sessionIdCache.end() || mac_it != macAddressCache.end()) {
+      return player;
+    }
+  }
+
   Document doc;
   doc.SetObject();
   doc.AddMember("hostAddress", ip, doc.GetAllocator());
