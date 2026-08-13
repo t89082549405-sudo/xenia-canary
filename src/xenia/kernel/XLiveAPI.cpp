@@ -950,26 +950,25 @@ std::unique_ptr<PlayerObjectJSON> XLiveAPI::FindPlayer(std::string ip) {
 
   if (cvars::network_mode == NETWORK_MODE::LAN) {
     const sockaddr_in addr = ip_to_sockaddr(ip);
-    const uint32_t cache_ip = addr.sin_addr.s_addr;
+    const uint32_t peer_ip = addr.sin_addr.s_addr;
 
-    // SystemLink does not provide player metadata through XLiveAPI.
-    // Build a deterministic local identity from the remote LAN IP.
-    const uint64_t virtual_mac =
-        0x020000000000ULL |
-        static_cast<uint64_t>(ntohl(addr.sin_addr.s_addr));
+    const auto session_it = sessionIdCache.find(peer_ip);
+    const auto mac_it = macAddressCache.find(peer_ip);
 
-    const uint64_t session_id = GetSystemlinkID();
+    if (session_it != sessionIdCache.end()) {
+      player->SessionID(session_it->second);
+    }
+
+    if (mac_it != macAddressCache.end()) {
+      player->MacAddress(mac_it->second);
+    }
 
     player->HostAddress(ip);
     player->Port(GetPlayerPort());
-    player->MacAddress(virtual_mac);
-    player->SessionID(session_id);
 
-    // Populate the same caches used by XNetInAddrToXnAddr.
-    sessionIdCache[cache_ip] = session_id;
-    macAddressCache[cache_ip] = virtual_mac;
-
-    return player;
+    if (session_it != sessionIdCache.end() && mac_it != macAddressCache.end()) {
+      return player;
+    }
   }
 
   Document doc;
