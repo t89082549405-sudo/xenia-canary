@@ -293,9 +293,10 @@ DECLARE_XAM_EXPORT1(NetDll_XNetCleanup, kNetworking, kStub);
 
 dword_result_t XNetLogonGetMachineID_entry(lpqword_t machine_id_ptr) {
   const MacAddress console_mac = GetConsoleMacAddress();
-  *machine_id_ptr = GetLocalMachineId(console_mac);
+  const uint64_t machine_id = GetLocalMachineId(console_mac);
+  *machine_id_ptr = machine_id;
   XELOGI("XNetLogonGetMachineID: console_mac={:016X} machine_id={:016X}",
-         console_mac.to_uint64(), machine_id_ptr->get());
+         console_mac.to_uint64(), machine_id);
 
   // if (XLiveAPI::GetInitState() != XLiveAPI::InitState::Success) {
   //   *machine_id_ptr = 0;
