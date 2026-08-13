@@ -1012,8 +1012,7 @@ dword_result_t NetDll_XNetInAddrToXnAddr_entry(dword_t caller, dword_t in_addr,
   }
 
   if (xid_ptr != nullptr) {
-    XNKID* sessionId_ptr =
-        kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
+    XNKID* sessionId_ptr = kernel_memory()->TranslateVirtual<XNKID*>(xid_ptr);
 
     xe::be<uint64_t> session_id =
         XLiveAPI::sessionIdCache[xn_addr->inaOnline.s_addr];
